@@ -1,10 +1,11 @@
 bl_info = {
-    "name": "Blend2Halo2 JMA",
-    "author": "Not General_101",
+    "name": "Blend2Halo2 Animation",
+    "author": "General_101",
+	"version": (0, 0, 1),    
     "blender": (2, 80, 0),
-    "location": "File > Import-Export",
-    "description": "Export JMA files for Halo 2",
-    "warning": "",
+    "location": "File > Export",
+    "description": "Export animation files for Halo 2/CE",
+    "wiki_url": "https://num0005.github.io/h2codez_docs/w/H2Tool/Animations.html", 
     "category": "Import-Export"}
 
 import bpy
@@ -12,7 +13,7 @@ import math
 
 from bpy_extras.io_utils import ExportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty
-from bpy.types import Operator
+from bpy.types import Operator, Panel, PropertyGroup
 from math import ceil
 from decimal import *
 
@@ -24,14 +25,24 @@ def get_child(bone, boneslist = [], *args):
             return child
             
 def get_sibling(bone2, boneslist2 = [], *args):
+    siblinglist = []
     for node in boneslist2:
         if bone2.parent == node.parent:
-            child = node
-            if child == bone2:
-                return None
-            else:
-                print(child)                
-                return child            
+            siblinglist.append(node)
+    print('get list %s' % siblinglist)
+    print('get index %s' % siblinglist.index(bone2))
+    print('get bone2 %s' % bone2)
+    if len(siblinglist) <= 1:
+        return None 
+    else:
+        sibling_node = siblinglist.index(bone2) 
+        test = sibling_node + 1
+        if test >= len(siblinglist):
+            child = None
+        else:      
+            child = bpy.data.armatures['Armature'].bones['%s' % siblinglist[test].name]
+        print('get sibling %s' % child)
+        return child
     
 def export_jma(context, filepath):
 
@@ -62,7 +73,8 @@ def export_jma(context, filepath):
     keyframelist = list( dict.fromkeys(KEYFRAME_POINTS_ARRAY) )
     keyframelist.sort()
     
-    version = 16392
+    SelectedVersion = bpy.context.scene.anim.HaloVersionType
+    version = 16390 + int(SelectedVersion)
     node_checksum = 0
     transform_count = len(keyframelist)
     frame_rate = 30
@@ -124,14 +136,14 @@ def export_jma(context, filepath):
                 )    
 
     #write transforms
-    for node in nodeslist:
-        a = 0 
-        arm = context.scene.objects['Armature']
-        bone = arm.pose.bones['%s' % (node.name)]             
-        for keys in keyframelist:
+    for keys in keyframelist:    
+        a = 0             
+        for node in nodeslist:
+            arm = context.scene.objects['Armature']
+            bone = arm.pose.bones['%s' % (node.name)]         
             bpy.context.scene.frame_set(keyframelist[a])
             
-            pos  = bone.location
+            pos  = bone.matrix.translation
             quat = bone.matrix.to_quaternion()
             
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
@@ -153,14 +165,33 @@ def export_jma(context, filepath):
             
     bpy.context.scene.frame_set(1)
     file.close()
-    return {'FINISHED'}        
-
-class ExportJMA(Operator, ExportHelper):
-    """Write a Halo animation file"""
-    bl_idname = "export_jma.export"
-    bl_label = "Export Animation"
+    return {'FINISHED'}    
     
-    Halo_Animation_Type: EnumProperty(
+class FilePanel(bpy.types.Panel):
+    bl_label = "Halo Animation"
+    bl_idname = "HALO_PT_AnimationPanel"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Animation"
+    
+    def draw(self, context):
+        layout = self.layout
+        
+        scn = context.scene
+        anim = scn.anim
+        
+        row = layout.row()
+        row.label(text="Set extension and version")
+        
+        row = layout.row()
+        row.prop(anim, "HaloExtensionType")
+        
+        row = layout.row()
+        row.prop(anim, "HaloVersionType")        
+        
+class Animation_OptionDropdown(PropertyGroup):
+
+    HaloExtensionType: EnumProperty(
         name="Extension:",
         description="What extension to use for the animation file",
         items=[ ('0', "JMA", ""),
@@ -173,40 +204,68 @@ class ExportJMA(Operator, ExportHelper):
                ]
         )
         
-    filename_ext = ".jma"
-#    if props.Halo_Animation_Type == 0:
-#        filename_ext = ".jma"
-#    elif props.Halo_Animation_Type == 1:
-#        filename_ext = ".jmm"       
-#    elif props.Halo_Animation_Type == 2:
-#        filename_ext = ".jmt"          
-#    elif props.Halo_Animation_Type == 3:
-#        filename_ext = ".jmr" 
-#    elif props.Halo_Animation_Type == 4:
-#        filename_ext = ".jrmx"      
-#    elif props.Halo_Animation_Type == 5:
-#        filename_ext = ".jmz"              
-#    elif props.Halo_Animation_Type == 6:
-#        filename_ext = ".jmw" 
+    HaloVersionType: EnumProperty(
+        name="Version:",
+        description="What version to use for the animation file",
+        items=[ ('0', "16390", ""),
+                ('1', "16391", ""),
+                ('2', "16392", ""),
+                ('3', "16393", ""),
+                ('4', "16394", ""),
+                ('5', "16395", ""),
+               ]
+        )        
+
+class ExportJMA(Operator, ExportHelper):
+    """Write a Halo animation file"""
+    bl_idname = "export_jma.export"
+    bl_label = "Export Animation"
+
+    Extension = 0
+    
+    if Extension == 0:
+        filename_ext = ".jma"
+    elif Extension == 1:
+        filename_ext = ".jmm"       
+    elif Extension == 2:
+        filename_ext = ".jmt"          
+    elif Extension == 3:
+        filename_ext = ".jmr" 
+    elif Extension == 4:
+        filename_ext = ".jrmx"      
+    elif Extension == 5:
+        filename_ext = ".jmz"              
+    elif Extension == 6:
+        filename_ext = ".jmw" 
        
     filter_glob: StringProperty(
             default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmz;*.jmw",
             options={'HIDDEN'},
             )
 
-    def execute(self, context):             
+    def execute(self, context):   
         return export_jma(context, self.filepath)
+
+classes = (
+    ExportJMA,
+    FilePanel,
+    Animation_OptionDropdown
+)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
 
 def register():
-    bpy.utils.register_class(ExportJMA)
+    for cls in classes:
+        bpy.utils.register_class(cls) 
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+    bpy.types.Scene.anim = PointerProperty(type=Animation_OptionDropdown, name="Halo Animation Properties", description="Halo Animation Properties")
 
 def unregister():
-    bpy.utils.unregister_class(ExportJMA)
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)   
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+    del bpy.types.Scene.anim
     
 if __name__ == '__main__':
     register()
