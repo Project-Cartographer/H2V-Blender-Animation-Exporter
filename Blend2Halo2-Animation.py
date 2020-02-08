@@ -219,6 +219,7 @@ class Animation_OptionDropdown(PropertyGroup):
     HaloVersionType: EnumProperty(
         name="Version:",
         description="What version to use for the animation file",
+        default="2",
         items=[ ('0', "16390", ""),
                 ('1', "16391", ""),
                 ('2', "16392", ""),
