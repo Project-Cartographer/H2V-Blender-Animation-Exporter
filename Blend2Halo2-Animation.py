@@ -23,7 +23,7 @@ def get_child(bone, boneslist = [], *args):
             child = node
             return child
 
-def get_sibling(bone2, boneslist2 = [], *args):
+def get_sibling(armature, bone2, boneslist2 = [], *args):
     siblinglist = []
     for node in boneslist2:
         if bone2.parent == node.parent:
@@ -39,7 +39,7 @@ def get_sibling(bone2, boneslist2 = [], *args):
             child = None
 
         else:
-            child = bpy.data.armatures['Armature'].bones['%s' % siblinglist[test].name]
+            child = armature.data.bones['%s' % siblinglist[test].name]
 
         return child
 
@@ -53,13 +53,14 @@ def export_jma(context, filepath):
     objectslist = list(bpy.context.scene.objects)
     nodeslist = []
     keyframes = []
+    armature = []
 
     for obj in objectslist:
-        if (obj.name[0:2].lower() == 'b_' or obj.name[0:5].lower() == "bone_" or obj.name[0:6].lower() == "bip01_" or obj.name[0:6].lower() == "frame_" or obj.name.lower() == "armature"):
-            if obj.type == 'ARMATURE':
-                bpy.context.view_layer.objects.active = obj
-                obj.select_set(True)
-                nodeslist = list(obj.data.bones)
+        if obj.type == 'ARMATURE':
+            armature = obj
+            bpy.context.view_layer.objects.active = obj
+            obj.select_set(True)
+            nodeslist = list(obj.data.bones)
 
     KEYFRAME_POINTS_ARRAY = []
     fcurves = bpy.context.active_object.animation_data.action.fcurves
@@ -123,7 +124,7 @@ def export_jma(context, filepath):
     else:
         for node in nodeslist:
             findchildnode = get_child(node, nodeslist)
-            findsiblingnode = get_sibling(node, nodeslist)
+            findsiblingnode = get_sibling(armature, node, nodeslist)
             if findchildnode == None:
                 first_child_node = -1
 
@@ -145,8 +146,7 @@ def export_jma(context, filepath):
     #write transforms
     for keys in keyframelist:
         for node in nodeslist:
-            arm = context.scene.objects['Armature']
-            pose_bone = arm.pose.bones['%s' % (node.name)]
+            pose_bone = armature.pose.bones['%s' % (node.name)]
             
             print(keyframelist.index(keys))
             keyindex = keyframelist.index(keys)
