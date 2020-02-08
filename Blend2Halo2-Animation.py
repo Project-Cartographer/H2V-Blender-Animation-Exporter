@@ -42,10 +42,10 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath):
+def export_jma(context, filepath, extension, jma_version, custom_framerate):
 
-    file = open(filepath, 'w')
-
+    file = open(filepath + extension, 'w')
+    
     bpy.ops.object.mode_set(mode = 'OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
 
@@ -72,12 +72,16 @@ def export_jma(context, filepath):
     keyframe_list = list(dict.fromkeys(keyframe_points_array))
     keyframe_list.sort()
 
-    selected_version = bpy.context.scene.anim.HaloVersionType
-
-    version = 16390 + int(selected_version)
+    version = 16390 + int(jma_version)
     node_checksum = 0
     transform_count = len(keyframe_list)
-    frame_rate = 30
+
+    if custom_framerate:
+        frame_rate = bpy.context.scene.render.fps
+        
+    else:
+        frame_rate = 30
+        
     actor_count = 1
     actor_name = 'unnamedActor'
     node_count = len(node_list)
@@ -145,8 +149,7 @@ def export_jma(context, filepath):
     for keys in keyframe_list:
         for node in node_list:
             pose_bone = armature.pose.bones['%s' % (node.name)]
-            
-            print(keyframe_list.index(keys))
+
             key_index = keyframe_list.index(keys)
             bpy.context.scene.frame_set(keyframe_list[key_index])
             
@@ -176,48 +179,32 @@ def export_jma(context, filepath):
     file.write(
         '\n'
         )
+
     bpy.context.scene.frame_set(1)
     file.close()
     return {'FINISHED'}
 
-class FilePanel(bpy.types.Panel):
-    bl_label = "Halo Animation"
-    bl_idname = "HALO_PT_AnimationPanel"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Animation"
+class ExportJMA(Operator, ExportHelper):
+    """Write a Halo animation file"""
+    bl_idname = "export_jma.export"
+    bl_label = "Export Animation"
 
-    def draw(self, context):
-        layout = self.layout
+    filename_ext = ''
 
-        scn = context.scene
-        anim = scn.anim
-
-        row = layout.row()
-        row.label(text="Set extension and version")
-
-        row = layout.row()
-        row.prop(anim, "HaloExtensionType")
-
-        row = layout.row()
-        row.prop(anim, "HaloVersionType")
-
-class Animation_OptionDropdown(PropertyGroup):
-
-    HaloExtensionType: EnumProperty(
+    extension: EnumProperty(
         name="Extension:",
         description="What extension to use for the animation file",
-        items=[ ('0', "JMA", ""),
-                ('1', "JMM", ""),
-                ('2', "JMT", ""),
-                ('3', "JMR", ""),
-                ('4', "JRMX", ""),
-                ('5', "JMZ", ""),
-                ('6', "JMW", ""),
+        items=[ ('.jma', "JMA", ""),
+                ('.jmm', "JMM", ""),
+                ('.jmt', "JMT", ""),
+                ('.jmr', "JMR", ""),
+                ('.jrmx', "JRMX", ""),
+                ('.jmz', "JMZ", ""),
+                ('.jmw', "JMW", ""),
                ]
         )
 
-    HaloVersionType: EnumProperty(
+    jma_version: EnumProperty(
         name="Version:",
         description="What version to use for the animation file",
         default="2",
@@ -229,34 +216,12 @@ class Animation_OptionDropdown(PropertyGroup):
                 ('5', "16395", ""),
                ]
         )
-
-class ExportJMA(Operator, ExportHelper):
-    """Write a Halo animation file"""
-    bl_idname = "export_jma.export"
-    bl_label = "Export Animation"
-
-    Extension = 0
-
-    if Extension == 0:
-        filename_ext = ".jma"
-
-    elif Extension == 1:
-        filename_ext = ".jmm"
-
-    elif Extension == 2:
-        filename_ext = ".jmt"
-
-    elif Extension == 3:
-        filename_ext = ".jmr" 
-
-    elif Extension == 4:
-        filename_ext = ".jrmx"
-
-    elif Extension == 5:
-        filename_ext = ".jmz"
-
-    elif Extension == 6:
-        filename_ext = ".jmw" 
+        
+    custom_framerate: BoolProperty(
+        name ="Custom Framerate",
+        description = "Set the framerate this animation will run at. Having this box unchecked will write 30 by default.",
+        default = False,
+        )
 
     filter_glob: StringProperty(
             default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmz;*.jmw",
@@ -264,28 +229,18 @@ class ExportJMA(Operator, ExportHelper):
             )
 
     def execute(self, context):
-        return export_jma(context, self.filepath)
-
-classes = (
-    ExportJMA,
-    FilePanel,
-    Animation_OptionDropdown
-)
+        return export_jma(context, self.filepath, extension=self.extension, jma_version=self.jma_version, custom_framerate=self.custom_framerate)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
 
 def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
+    bpy.utils.register_class(ExportJMA)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
-    bpy.types.Scene.anim = PointerProperty(type=Animation_OptionDropdown, name="Halo Animation Properties", description="Halo Animation Properties")
 
 def unregister():
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
+    bpy.utils.unregister_class(ExportJMA)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
-    del bpy.types.Scene.anim
 
 if __name__ == '__main__':
     register()
