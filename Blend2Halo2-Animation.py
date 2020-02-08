@@ -144,14 +144,20 @@ def export_jma(context, filepath):
 
     #write transforms
     for keys in keyframelist:
-        a = 0
         for node in nodeslist:
             arm = context.scene.objects['Armature']
-            bone = arm.pose.bones['%s' % (node.name)]
-            bpy.context.scene.frame_set(keyframelist[a])
-
-            pos  = bone.matrix.translation
-            quat = bone.matrix.to_quaternion()
+            pose_bone = arm.pose.bones['%s' % (node.name)]
+            
+            print(keyframelist.index(keys))
+            keyindex = keyframelist.index(keys)
+            bpy.context.scene.frame_set(keyframelist[keyindex])
+            
+            bone_matrix = pose_bone.matrix
+            if pose_bone.parent:
+                bone_matrix = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
+            
+            pos  = bone_matrix.translation
+            quat = bone_matrix.to_quaternion()
 
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
@@ -168,8 +174,6 @@ def export_jma(context, filepath):
                 '\n%0.8f\t%0.8f\t%0.8f\t%0.8f' % (quat_i, quat_j, quat_k, quat_w) +
                 '\n%0.1f' % (transform_scale)
                 )
-
-            a = a + 1
 
     bpy.context.scene.frame_set(1)
     file.close()
