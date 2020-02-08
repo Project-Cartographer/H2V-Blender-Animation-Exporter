@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Blend2Halo2 Animation",
     "author": "General_101",
-    "version": (0, 0, 1),
+    "version": (0, 0, 5),
     "blender": (2, 80, 0),
     "location": "File > Export",
     "description": "Export animation files for Halo 2/CE",
@@ -17,71 +17,70 @@ from bpy_extras.io_utils import ExportHelper
 from bpy.types import Operator, Panel, PropertyGroup
 from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty
 
-def get_child(bone, boneslist = [], *args):
-    for node in boneslist:
+def get_child(bone, bone_list = [], *args):
+    for node in bone_list:
         if bone == node.parent:
-            child = node
-            return child
+            return node
 
-def get_sibling(armature, bone2, boneslist2 = [], *args):
-    siblinglist = []
-    for node in boneslist2:
-        if bone2.parent == node.parent:
-            siblinglist.append(node)
+def get_sibling(armature, bone, bone_list = [], *args):
+    sibling_list = []
+    for node in bone_list:
+        if bone.parent == node.parent:
+            sibling_list.append(node)
 
-    if len(siblinglist) <= 1:
+    if len(sibling_list) <= 1:
         return None
 
     else:
-        sibling_node = siblinglist.index(bone2)
-        test = sibling_node + 1
-        if test >= len(siblinglist):
-            child = None
+        sibling_node = sibling_list.index(bone)
+        next_sibling_node = sibling_node + 1
+        if next_sibling_node >= len(sibling_list):
+            sibling = None
 
         else:
-            child = armature.data.bones['%s' % siblinglist[test].name]
+            sibling = armature.data.bones['%s' % sibling_list[next_sibling_node].name]
 
-        return child
+        return sibling
 
 def export_jma(context, filepath):
 
-    file = open(filepath, 'w', encoding='utf_16')
+    file = open(filepath, 'w')
 
     bpy.ops.object.mode_set(mode = 'OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
 
-    objectslist = list(bpy.context.scene.objects)
-    nodeslist = []
+    object_list = list(bpy.context.scene.objects)
+    node_list = []
     keyframes = []
     armature = []
 
-    for obj in objectslist:
+    for obj in object_list:
         if obj.type == 'ARMATURE':
             armature = obj
             bpy.context.view_layer.objects.active = obj
             obj.select_set(True)
-            nodeslist = list(obj.data.bones)
+            node_list = list(obj.data.bones)
 
-    KEYFRAME_POINTS_ARRAY = []
+    keyframe_points_array = []
     fcurves = bpy.context.active_object.animation_data.action.fcurves
 
     for curve in fcurves:
-        keyframePoints = curve.keyframe_points
-        for keyframe in keyframePoints:
-            KEYFRAME_POINTS_ARRAY.append(keyframe.co[0])
+        keyframe_points = curve.keyframe_points
+        for keyframe in keyframe_points:
+            keyframe_points_array.append(keyframe.co[0])
 
-    keyframelist = list(dict.fromkeys(KEYFRAME_POINTS_ARRAY))
-    keyframelist.sort()
+    keyframe_list = list(dict.fromkeys(keyframe_points_array))
+    keyframe_list.sort()
 
-    SelectedVersion = bpy.context.scene.anim.HaloVersionType
+    selected_version = bpy.context.scene.anim.HaloVersionType
 
-    version = 16390 + int(SelectedVersion)
+    version = 16390 + int(selected_version)
     node_checksum = 0
-    transform_count = len(keyframelist)
+    transform_count = len(keyframe_list)
     frame_rate = 30
     actor_count = 1
     actor_name = 'unnamedActor'
-    node_count = len(nodeslist)
+    node_count = len(node_list)
 
     #write header
     if version >= 16394:
@@ -108,13 +107,12 @@ def export_jma(context, filepath):
 
     #write nodes
     if version >= 16394:
-        for node in nodeslist:
-            parent_node = -1
+        for node in node_list:
             if node.parent == None:
                 parent_node = -1
 
             else:
-                parent_node = nodeslist.index(node.parent)
+                parent_node = node_list.index(node.parent)
 
             file.write(
                 '\n%s' % (node.name) +
@@ -122,35 +120,35 @@ def export_jma(context, filepath):
                 )
 
     else:
-        for node in nodeslist:
-            findchildnode = get_child(node, nodeslist)
-            findsiblingnode = get_sibling(armature, node, nodeslist)
-            if findchildnode == None:
+        for node in node_list:
+            find_child_node = get_child(node, node_list)
+            find_sibling_node = get_sibling(armature, node, node_list)
+            if find_child_node == None:
                 first_child_node = -1
 
             else:
-                first_child_node = nodeslist.index(findchildnode)
+                first_child_node = node_list.index(find_child_node)
 
-            if findsiblingnode == None:
-                sibling_node = -1
+            if find_sibling_node == None:
+                first_sibling_node = -1
 
             else:
-                sibling_node = nodeslist.index(findsiblingnode)
+                first_sibling_node = node_list.index(find_sibling_node)
 
             file.write(
                 '\n%s' % (node.name) +
                 '\n%s' % (first_child_node) +
-                '\n%s' % (sibling_node)
+                '\n%s' % (first_sibling_node)
                 )
 
     #write transforms
-    for keys in keyframelist:
-        for node in nodeslist:
+    for keys in keyframe_list:
+        for node in node_list:
             pose_bone = armature.pose.bones['%s' % (node.name)]
             
-            print(keyframelist.index(keys))
-            keyindex = keyframelist.index(keys)
-            bpy.context.scene.frame_set(keyframelist[keyindex])
+            print(keyframe_list.index(keys))
+            key_index = keyframe_list.index(keys)
+            bpy.context.scene.frame_set(keyframe_list[key_index])
             
             bone_matrix = pose_bone.matrix
             if pose_bone.parent:
