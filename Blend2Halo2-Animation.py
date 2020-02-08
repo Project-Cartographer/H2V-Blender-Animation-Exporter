@@ -168,11 +168,14 @@ def export_jma(context, filepath):
             transform_scale = 1
 
             file.write(
-                '\n%0.8f\t%0.8f\t%0.8f' % (pos_x, pos_y, pos_z) +
-                '\n%0.8f\t%0.8f\t%0.8f\t%0.8f' % (quat_i, quat_j, quat_k, quat_w) +
-                '\n%0.1f' % (transform_scale)
+                '\n%0.6f\t%0.6f\t%0.6f' % (pos_x, pos_y, pos_z) +
+                '\n%0.6f\t%0.6f\t%0.6f\t%0.6f' % (quat_i, quat_j, quat_k, quat_w) +
+                '\n%0.6f' % (transform_scale)
                 )
 
+    file.write(
+        '\n'
+        )
     bpy.context.scene.frame_set(1)
     file.close()
     return {'FINISHED'}
