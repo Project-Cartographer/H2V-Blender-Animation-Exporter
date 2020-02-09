@@ -42,9 +42,9 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, extension, jma_version, custom_framerate):
+def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate):
 
-    file = open(filepath + extension, 'w')
+    file = open(filepath + extension, 'w', encoding='%s' % encoding)
 
     object_list = list(bpy.context.scene.objects)
     node_list = []
@@ -174,7 +174,8 @@ def export_jma(context, filepath, report, extension, jma_version, custom_framera
             
             pos  = bone_matrix.translation
             quat = bone_matrix.to_quaternion()
-
+            scale = pose_bone.scale
+            
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
             quat_k = Decimal(quat[3]).quantize(Decimal('1.000000'))
@@ -182,8 +183,14 @@ def export_jma(context, filepath, report, extension, jma_version, custom_framera
             pos_x = Decimal(pos[0]).quantize(Decimal('1.000000'))
             pos_y = Decimal(pos[1]).quantize(Decimal('1.000000'))
             pos_z = Decimal(pos[2]).quantize(Decimal('1.000000'))
-
-            transform_scale = pose_bone.scale[0]
+            scale_x = Decimal(scale[0]).quantize(Decimal('1.000000'))
+            scale_y = Decimal(scale[1]).quantize(Decimal('1.000000'))
+            scale_z = Decimal(scale[2]).quantize(Decimal('1.000000'))
+            
+            if not scale_x == scale_y == scale_z:
+                report({'ERROR'}, "Scale for bone %s is not uniform. Resolve this or understand that what shows up ingame may be different from your scene." % node.name)
+                
+            transform_scale = scale_x
 
             file.write(
                 '\n%0.6f\t%0.6f\t%0.6f' % (pos_x, pos_y, pos_z) +
@@ -206,16 +213,24 @@ class ExportJMA(Operator, ExportHelper):
 
     filename_ext = ''
 
+    encoding: EnumProperty(
+        name="Encoding:",
+        description="What encoding to use for the animation file",
+        items=[ ('utf_8', "UTF-8", "For CE/H2"),
+                ('utf_16', "UTF-16", "For H2"),
+               ]
+        )
+
     extension: EnumProperty(
         name="Extension:",
         description="What extension to use for the animation file",
-        items=[ ('.jma', "JMA", ""),
-                ('.jmm', "JMM", ""),
-                ('.jmt', "JMT", ""),
-                ('.jmr', "JMR", ""),
-                ('.jrmx', "JRMX", ""),
-                ('.jmz', "JMZ", ""),
-                ('.jmw', "JMW", ""),
+        items=[ ('.jma', "JMA", "Jointed Model Animation CE/H2"),
+                ('.jmm', "JMM", "Jointed Model Moving CE/H2"),
+                ('.jmt', "JMT", "Jointed Model Turning CE/H2"),
+                ('.jmr', "JMR", "Jointed Model Replacement CE/H2"),
+                ('.jrmx', "JRMX", "Jointed Model Replacement Extended H2"),
+                ('.jmz', "JMZ", "Jointed Model Height CE/H2"),
+                ('.jmw', "JMW", "Jointed Model World CE/H2"),
                ]
         )
 
@@ -223,12 +238,12 @@ class ExportJMA(Operator, ExportHelper):
         name="Version:",
         description="What version to use for the animation file",
         default="2",
-        items=[ ('0', "16390", ""),
-                ('1', "16391", ""),
-                ('2', "16392", ""),
-                ('3', "16393", ""),
-                ('4', "16394", ""),
-                ('5', "16395", ""),
+        items=[ ('0', "16390", "CE/H2"),
+                ('1', "16391", "CE/H2"),
+                ('2', "16392", "CE/H2"),
+                ('3', "16393", "CE/H2"),
+                ('4', "16394", "H2"),
+                ('5', "16395", "H2"),
                ]
         )
         
@@ -244,7 +259,7 @@ class ExportJMA(Operator, ExportHelper):
             )
 
     def execute(self, context):
-        return export_jma(context, self.filepath, self.report, extension=self.extension, jma_version=self.jma_version, custom_framerate=self.custom_framerate)
+        return export_jma(context, self.filepath, self.report, encoding=self.encoding, extension=self.extension, jma_version=self.jma_version, custom_framerate=self.custom_framerate)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
