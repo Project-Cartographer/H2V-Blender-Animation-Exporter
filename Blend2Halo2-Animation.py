@@ -188,7 +188,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             scale_z = Decimal(scale[2]).quantize(Decimal('1.000000'))
             
             if not scale_x == scale_y == scale_z:
-                report({'ERROR'}, "Scale for bone %s is not uniform. Resolve this or understand that what shows up ingame may be different from your scene." % node.name)
+                report({'WARNING'}, "Scale for bone %s is not uniform. Resolve this or understand that what shows up ingame may be different from your scene." % node.name)
                 
             transform_scale = scale_x
 
