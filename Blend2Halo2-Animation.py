@@ -42,27 +42,41 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, extension, jma_version, custom_framerate):
+def export_jma(context, filepath, report, extension, jma_version, custom_framerate):
 
     file = open(filepath + extension, 'w')
-    
-    bpy.ops.object.mode_set(mode = 'OBJECT')
-    bpy.ops.object.select_all(action='DESELECT')
 
     object_list = list(bpy.context.scene.objects)
     node_list = []
     keyframes = []
     armature = []
+    armature_count = 0
+    
+    bpy.context.view_layer.objects.active = object_list[0]
+    bpy.ops.object.mode_set(mode = 'OBJECT')
+    bpy.ops.object.select_all(action='DESELECT')    
 
     for obj in object_list:
         if obj.type == 'ARMATURE':
+            armature_count += 1
+            print(armature_count)
             armature = obj
             bpy.context.view_layer.objects.active = obj
             obj.select_set(True)
             node_list = list(obj.data.bones)
+        if armature_count >= 2:
+            report({'ERROR'}, "More than one armature object. Please delete all but one.")
+            file.close()
+            return {'CANCELLED'}
+        
 
     keyframe_points_array = []
-    fcurves = bpy.context.active_object.animation_data.action.fcurves
+    if not bpy.context.active_object.animation_data or not bpy.context.active_object.animation_data.action:
+        report({'ERROR'}, "No animation data to export.")
+        file.close()
+        return {'CANCELLED'}     
+    else:
+        fcurves = bpy.context.active_object.animation_data.action.fcurves   
 
     for curve in fcurves:
         keyframe_points = curve.keyframe_points
@@ -81,7 +95,8 @@ def export_jma(context, filepath, extension, jma_version, custom_framerate):
         
     else:
         frame_rate = 30
-        
+    
+    #actor related items are hardcoded due to them being an unused feature in tool. Do not attempt to do anything to write this out as it is a waste of time and will get you nothing.    
     actor_count = 1
     actor_name = 'unnamedActor'
     node_count = len(node_list)
@@ -168,7 +183,7 @@ def export_jma(context, filepath, extension, jma_version, custom_framerate):
             pos_y = Decimal(pos[1]).quantize(Decimal('1.000000'))
             pos_z = Decimal(pos[2]).quantize(Decimal('1.000000'))
 
-            transform_scale = 1
+            transform_scale = pose_bone.scale[0]
 
             file.write(
                 '\n%0.6f\t%0.6f\t%0.6f' % (pos_x, pos_y, pos_z) +
@@ -229,7 +244,7 @@ class ExportJMA(Operator, ExportHelper):
             )
 
     def execute(self, context):
-        return export_jma(context, self.filepath, extension=self.extension, jma_version=self.jma_version, custom_framerate=self.custom_framerate)
+        return export_jma(context, self.filepath, self.report, extension=self.extension, jma_version=self.jma_version, custom_framerate=self.custom_framerate)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
