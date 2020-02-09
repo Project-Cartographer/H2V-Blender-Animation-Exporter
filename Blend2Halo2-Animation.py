@@ -64,6 +64,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             bpy.context.view_layer.objects.active = obj
             obj.select_set(True)
             node_list = list(obj.data.bones)
+
         if armature_count >= 2:
             report({'ERROR'}, "More than one armature object. Please delete all but one.")
             file.close()
@@ -74,7 +75,8 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     if not bpy.context.active_object.animation_data or not bpy.context.active_object.animation_data.action:
         report({'ERROR'}, "No animation data to export.")
         file.close()
-        return {'CANCELLED'}     
+        return {'CANCELLED'}   
+        
     else:
         fcurves = bpy.context.active_object.animation_data.action.fcurves   
 
@@ -227,6 +229,7 @@ class ExportJMA(Operator, ExportHelper):
         items=[ ('.jma', "JMA", "Jointed Model Animation CE/H2"),
                 ('.jmm', "JMM", "Jointed Model Moving CE/H2"),
                 ('.jmt', "JMT", "Jointed Model Turning CE/H2"),
+                ('.jmo', "JMO", "Jointed Model Overlay CE/H2"),                
                 ('.jmr', "JMR", "Jointed Model Replacement CE/H2"),
                 ('.jrmx', "JRMX", "Jointed Model Replacement Extended H2"),
                 ('.jmz', "JMZ", "Jointed Model Height CE/H2"),
