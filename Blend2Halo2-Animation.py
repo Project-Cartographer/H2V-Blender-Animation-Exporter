@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Blend2Halo2 Animation",
     "author": "General_101",
-    "version": (0, 0, 5),
+    "version": (1, 0, 0),
     "blender": (2, 80, 0),
     "location": "File > Export",
     "description": "Export animation files for Halo 2/CE",
@@ -48,6 +48,14 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     object_list = list(bpy.context.scene.objects)
     node_list = []
+    parent_list = []    
+    root_list = []
+    children_list = []    
+    reversed_children_list = []
+    joined_list = []   
+    reversed_joined_list = []       
+    sort_list = []       
+    reversed_sort_list = []  
     keyframes = []
     armature = []
     armature_count = 0
@@ -59,7 +67,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     for obj in object_list:
         if obj.type == 'ARMATURE':
             armature_count += 1
-            print(armature_count)
             armature = obj
             bpy.context.view_layer.objects.active = obj
             obj.select_set(True)
@@ -70,7 +77,35 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             file.close()
             return {'CANCELLED'}
         
-
+    for node in node_list:
+        if node.parent != None and not node.parent.name in parent_list:
+            parent_list.append(node.parent.name)
+    
+    for parent_name in parent_list:
+        joined_list = root_list + children_list
+        reversed_joined_list = root_list + reversed_children_list
+        parent_index = parent_list.index(parent_name)
+        if parent_index == 0:
+            root_list.append(armature.data.bones['%s' % parent_name])
+            
+        else:
+            for node in node_list:
+                if node.parent != None:
+                    if node.parent in joined_list and not node in children_list:
+                        sort_list.append(node.name)
+                        reversed_sort_list.append(node.name)
+                        
+            sort_list.sort()
+            reversed_sort_list.sort()
+            reversed_sort_list.reverse()
+            for sort in sort_list:
+                if not armature.data.bones['%s' % sort] in children_list:
+                    children_list.append(armature.data.bones['%s' % sort])
+                    
+            for sort in reversed_sort_list:
+                if not armature.data.bones['%s' % sort] in reversed_children_list:
+                    reversed_children_list.append(armature.data.bones['%s' % sort])                    
+            
     keyframe_points_array = []
     if not bpy.context.active_object.animation_data or not bpy.context.active_object.animation_data.action:
         report({'ERROR'}, "No animation data to export.")
@@ -141,20 +176,20 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
                 )
 
     else:
-        for node in node_list:
-            find_child_node = get_child(node, node_list)
-            find_sibling_node = get_sibling(armature, node, node_list)
+        for node in joined_list:
+            find_child_node = get_child(node, reversed_joined_list)
+            find_sibling_node = get_sibling(armature, node, reversed_joined_list)
             if find_child_node == None:
                 first_child_node = -1
 
             else:
-                first_child_node = node_list.index(find_child_node)
+                first_child_node = joined_list.index(find_child_node)
 
             if find_sibling_node == None:
                 first_sibling_node = -1
 
             else:
-                first_sibling_node = node_list.index(find_sibling_node)
+                first_sibling_node = joined_list.index(find_sibling_node)
 
             file.write(
                 '\n%s' % (node.name) +
@@ -164,7 +199,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     #write transforms
     for keys in keyframe_list:
-        for node in node_list:
+        for node in joined_list:
             pose_bone = armature.pose.bones['%s' % (node.name)]
 
             key_index = keyframe_list.index(keys)
