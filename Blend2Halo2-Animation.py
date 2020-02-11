@@ -212,57 +212,48 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             bpy.context.scene.frame_set(keyframe_list[key_index])
 
             bone_matrix = pose_bone.matrix
-            if pose_bone.parent:
+            if pose_bone.parent and not version >= 16394:
                 bone_matrix = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
+                
+            bone_matrix_quat = pose_bone.matrix               
+            if pose_bone.parent:
+                bone_matrix_quat = pose_bone.parent.matrix.inverted() @ pose_bone.matrix                
 
             pos  = bone_matrix.translation
-            quat = bone_matrix.to_quaternion()
+            quat = bone_matrix_quat.to_quaternion()
             scale = pose_bone.scale
 
-            local_quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
-            local_quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
-            local_quat_k = Decimal(quat[3]).quantize(Decimal('1.000000'))
-            local_quat_w = Decimal(quat[0]).quantize(Decimal('1.000000'))
-            local_pos_x = Decimal(pos[0]).quantize(Decimal('1.000000'))
-            local_pos_y = Decimal(pos[1]).quantize(Decimal('1.000000'))
-            local_pos_z = Decimal(pos[2]).quantize(Decimal('1.000000'))
-            local_scale_x = Decimal(scale[0]).quantize(Decimal('1.000000'))
-            local_scale_y = Decimal(scale[1]).quantize(Decimal('1.000000'))
-            local_scale_z = Decimal(scale[2]).quantize(Decimal('1.000000'))
-            
-            pivot_point_quat_i = Decimal(0).quantize(Decimal('1.000000'))
-            pivot_point_quat_j = Decimal(0).quantize(Decimal('1.000000'))
-            pivot_point_quat_k = Decimal(0).quantize(Decimal('1.000000'))
-            pivot_point_quat_w = Decimal(1).quantize(Decimal('1.000000'))
-            pivot_point_pos_x = Decimal(0).quantize(Decimal('1.000000'))
-            pivot_point_pos_y = Decimal(0).quantize(Decimal('1.000000'))
-            pivot_point_pos_z = Decimal(0).quantize(Decimal('1.000000'))
-            pivot_point_scale_x = Decimal(1).quantize(Decimal('1.000000'))
-            pivot_point_scale_y = Decimal(1).quantize(Decimal('1.000000'))
-            pivot_point_scale_z = Decimal(1).quantize(Decimal('1.000000'))            
-        
-            if not local_scale_x == local_scale_y == local_scale_z:
+            if version >= 16394:
+                invert_w = 0
+            else:
+                invert_w = 0
+            quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
+            quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
+            quat_k = Decimal(quat[3]).quantize(Decimal('1.000000'))
+            quat_w = Decimal(quat[0] * invert_w).quantize(Decimal('1.000000'))
+            pos_x = Decimal(pos[0]).quantize(Decimal('1.000000'))
+            pos_y = Decimal(pos[1]).quantize(Decimal('1.000000'))
+            pos_z = Decimal(pos[2]).quantize(Decimal('1.000000'))
+            scale_x = Decimal(scale[0]).quantize(Decimal('1.000000'))
+            scale_y = Decimal(scale[1]).quantize(Decimal('1.000000'))
+            scale_z = Decimal(scale[2]).quantize(Decimal('1.000000'))
+
+            if not scale_x == scale_y == scale_z:
                 report({'WARNING'}, "Scale for bone %s is not uniform. Resolve this or understand that what shows up ingame may be different from your scene." % node.name)
 
-            local_transform_scale = local_scale_x
-            pivot_point_transform_scale = pivot_point_scale_x
+            transform_scale = scale_x
 
-            if version >= 16394:    
-                file.write(
-                    '\n%0.6f\t%0.6f\t%0.6f' % (local_pos_x, local_pos_y, local_pos_z) +
-                    '\n%0.6f\t%0.6f\t%0.6f\t%0.6f' % (local_quat_i, local_quat_j, local_quat_k, (local_quat_w * -1)) +
-                    '\n%0.6f' % (local_transform_scale) +
-                    '\n%0.6f\t%0.6f\t%0.6f' % (pivot_point_pos_x, pivot_point_pos_y, pivot_point_pos_z) +
-                    '\n%0.6f\t%0.6f\t%0.6f\t%0.6f' % (pivot_point_quat_i, pivot_point_quat_j, pivot_point_quat_k, (pivot_point_quat_w * -1)) +
-                    '\n%0.6f' % (pivot_point_transform_scale)
-                    )
+            file.write(
+                '\n%0.6f\t%0.6f\t%0.6f' % (pos_x, pos_y, pos_z) +
+                '\n%0.6f\t%0.6f\t%0.6f\t%0.6f' % (quat_i, quat_j, quat_k, quat_w) +
+                '\n%0.6f' % (transform_scale)
+                )
 
-            else:
-                file.write(
-                    '\n%0.6f\t%0.6f\t%0.6f' % (local_pos_x, local_pos_y, local_pos_z) +
-                    '\n%0.6f\t%0.6f\t%0.6f\t%0.6f' % (local_quat_i, local_quat_j, local_quat_k, local_quat_w) +
-                    '\n%0.6f' % (local_transform_scale)
-                    )
+    if version >= 16394:
+        unknown = 0
+        file.write(
+            '\n%s' % (unknown)
+            )
 
     file.write(
         '\r\n'
