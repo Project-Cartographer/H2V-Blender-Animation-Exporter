@@ -247,7 +247,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     bpy.context.scene.frame_set(1)
     file.close()
-    with open(filepath + extension) as infile:
+    with open(filepath + extension, encoding='%s' % encoding) as infile:
         words = 0
         characters = 0
         for lineno, line in enumerate(infile, 1):
@@ -257,14 +257,14 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     if h2_workaround:
         if (characters/2).is_integer():
-            lines = open(filepath + extension).read().splitlines()
+            lines = open(filepath + extension, encoding='%s' % encoding).read().splitlines()
             if version >= 16394:
                 lines[1] = '00'
 
             else:
                 lines[6] = '00'
 
-            open(filepath + extension,'w').write('\n'.join(lines))
+            open(filepath + extension,'w', encoding='%s' % encoding).write('\n'.join(lines))
 
     return {'FINISHED'}
 
