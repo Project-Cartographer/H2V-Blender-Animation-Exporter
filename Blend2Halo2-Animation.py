@@ -42,27 +42,27 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate):
+def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate, h2_workaround):
 
     file = open(filepath + extension, 'w', encoding='%s' % encoding)
 
     object_list = list(bpy.context.scene.objects)
     node_list = []
-    parent_list = []    
+    layer_count = []
     root_list = []
-    children_list = []    
+    children_list = []
     reversed_children_list = []
-    joined_list = []   
-    reversed_joined_list = []       
-    sort_list = []       
-    reversed_sort_list = []  
+    joined_list = []
+    reversed_joined_list = []
+    sort_list = []
+    reversed_sort_list = []
     keyframes = []
     armature = []
     armature_count = 0
-    
+
     bpy.context.view_layer.objects.active = object_list[0]
     bpy.ops.object.mode_set(mode = 'OBJECT')
-    bpy.ops.object.select_all(action='DESELECT')    
+    bpy.ops.object.select_all(action='DESELECT')
 
     for obj in object_list:
         if obj.type == 'ARMATURE':
@@ -76,44 +76,50 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             report({'ERROR'}, "More than one armature object. Please delete all but one.")
             file.close()
             return {'CANCELLED'}
-        
+
     for node in node_list:
-        if node.parent != None and not node.parent.name in parent_list:
-            parent_list.append(node.parent.name)
-    
-    for parent_name in parent_list:
+        if node.parent == None:
+            layer_count.append(None)
+        else:
+            if not node.parent.name in layer_count:
+                layer_count.append(node.parent.name)
+
+    for layer in layer_count:
         joined_list = root_list + children_list
         reversed_joined_list = root_list + reversed_children_list
-        parent_index = parent_list.index(parent_name)
-        if parent_index == 0:
-            root_list.append(armature.data.bones['%s' % parent_name])
-            
+        layer_index = layer_count.index(layer)
+        if layer_index == 0:
+            root_list.append(armature.data.bones[0])
+
         else:
             for node in node_list:
                 if node.parent != None:
-                    if node.parent in joined_list and not node in children_list:
+                    if armature.data.bones['%s' % node.parent.name] in joined_list and not node in children_list:
                         sort_list.append(node.name)
                         reversed_sort_list.append(node.name)
-                        
+
             sort_list.sort()
             reversed_sort_list.sort()
             reversed_sort_list.reverse()
             for sort in sort_list:
                 if not armature.data.bones['%s' % sort] in children_list:
                     children_list.append(armature.data.bones['%s' % sort])
-                    
+
             for sort in reversed_sort_list:
                 if not armature.data.bones['%s' % sort] in reversed_children_list:
-                    reversed_children_list.append(armature.data.bones['%s' % sort])                    
-            
+                    reversed_children_list.append(armature.data.bones['%s' % sort])
+
+        joined_list = root_list + children_list
+        reversed_joined_list = root_list + reversed_children_list
+
     keyframe_points_array = []
     if not bpy.context.active_object.animation_data or not bpy.context.active_object.animation_data.action:
         report({'ERROR'}, "No animation data to export.")
         file.close()
-        return {'CANCELLED'}   
-        
+        return {'CANCELLED'}
+
     else:
-        fcurves = bpy.context.active_object.animation_data.action.fcurves   
+        fcurves = bpy.context.active_object.animation_data.action.fcurves
 
     for curve in fcurves:
         keyframe_points = curve.keyframe_points
@@ -129,11 +135,11 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     if custom_framerate:
         frame_rate = bpy.context.scene.render.fps
-        
+
     else:
         frame_rate = 30
-    
-    #actor related items are hardcoded due to them being an unused feature in tool. Do not attempt to do anything to write this out as it is a waste of time and will get you nothing.    
+
+    #actor related items are hardcoded due to them being an unused feature in tool. Do not attempt to do anything to write this out as it is a waste of time and will get you nothing.
     actor_count = 1
     actor_name = 'unnamedActor'
     node_count = len(node_list)
@@ -204,15 +210,15 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
             key_index = keyframe_list.index(keys)
             bpy.context.scene.frame_set(keyframe_list[key_index])
-            
+
             bone_matrix = pose_bone.matrix
             if pose_bone.parent:
                 bone_matrix = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
-            
+
             pos  = bone_matrix.translation
             quat = bone_matrix.to_quaternion()
             scale = pose_bone.scale
-            
+
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
             quat_k = Decimal(quat[3]).quantize(Decimal('1.000000'))
@@ -223,10 +229,10 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             scale_x = Decimal(scale[0]).quantize(Decimal('1.000000'))
             scale_y = Decimal(scale[1]).quantize(Decimal('1.000000'))
             scale_z = Decimal(scale[2]).quantize(Decimal('1.000000'))
-            
+        
             if not scale_x == scale_y == scale_z:
                 report({'WARNING'}, "Scale for bone %s is not uniform. Resolve this or understand that what shows up ingame may be different from your scene." % node.name)
-                
+
             transform_scale = scale_x
 
             file.write(
@@ -241,6 +247,25 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     bpy.context.scene.frame_set(1)
     file.close()
+    with open(filepath + extension) as infile:
+        words = 0
+        characters = 0
+        for lineno, line in enumerate(infile, 1):
+            wordslist = line.split()
+            words += len(wordslist)
+            characters += sum(len(word) for word in wordslist)
+
+    if h2_workaround:
+        if (characters/2).is_integer():
+            lines = open(filepath + extension).read().splitlines()
+            if version >= 16394:
+                lines[1] = '00'
+
+            else:
+                lines[6] = '00'
+
+            open(filepath + extension,'w').write('\n'.join(lines))
+
     return {'FINISHED'}
 
 class ExportJMA(Operator, ExportHelper):
@@ -261,14 +286,14 @@ class ExportJMA(Operator, ExportHelper):
     extension: EnumProperty(
         name="Extension:",
         description="What extension to use for the animation file",
-        items=[ ('.jma', "JMA", "Jointed Model Animation CE/H2"),
-                ('.jmm', "JMM", "Jointed Model Moving CE/H2"),
-                ('.jmt', "JMT", "Jointed Model Turning CE/H2"),
-                ('.jmo', "JMO", "Jointed Model Overlay CE/H2"),                
-                ('.jmr', "JMR", "Jointed Model Replacement CE/H2"),
-                ('.jrmx', "JRMX", "Jointed Model Replacement Extended H2"),
-                ('.jmz', "JMZ", "Jointed Model Height CE/H2"),
-                ('.jmw', "JMW", "Jointed Model World CE/H2"),
+        items=[ ('.JMA', "JMA", "Jointed Model Animation CE/H2"),
+                ('.JMM', "JMM", "Jointed Model Moving CE/H2"),
+                ('.JMT', "JMT", "Jointed Model Turning CE/H2"),
+                ('.JMO', "JMO", "Jointed Model Overlay CE/H2"),
+                ('.JMR', "JMR", "Jointed Model Replacement CE/H2"),
+                ('.JRMX', "JRMX", "Jointed Model Replacement Extended H2"),
+                ('.JMZ', "JMZ", "Jointed Model Height CE/H2"),
+                ('.JMW', "JMW", "Jointed Model World CE/H2"),
                ]
         )
 
@@ -284,11 +309,17 @@ class ExportJMA(Operator, ExportHelper):
                 ('5', "16395", "H2"),
                ]
         )
-        
+
     custom_framerate: BoolProperty(
         name ="Custom Framerate",
         description = "Set the framerate this animation will run at. Having this box unchecked will write 30 by default.",
         default = False,
+        )
+
+    h2_workaround: BoolProperty(
+        name ="Halo 2 Workaround",
+        description = "Add a character somewhere in the file to keep the character count even. H2Tool doesn't like files with uneven character counts",
+        default = True,
         )
 
     filter_glob: StringProperty(
@@ -297,7 +328,7 @@ class ExportJMA(Operator, ExportHelper):
             )
 
     def execute(self, context):
-        return export_jma(context, self.filepath, self.report, encoding=self.encoding, extension=self.extension, jma_version=self.jma_version, custom_framerate=self.custom_framerate)
+        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate, self.h2_workaround)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
