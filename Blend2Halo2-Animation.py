@@ -42,7 +42,7 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate, h2_workaround):
+def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate):
 
     file = open(filepath + extension, 'w', encoding='%s' % encoding)
 
@@ -263,27 +263,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     bpy.context.scene.frame_set(1)
     file.close()
-
-    #H2Tool has a problem with importing files with an uneven character count for animations. The code below is meant to workaround this by adding an extra character to the actor name if the number of characters isn't divisible by two.
-    if h2_workaround:
-        with open(filepath + extension, encoding='%s' % encoding) as infile:
-            words = 0
-            characters = 0
-            for lineno, line in enumerate(infile, 1):
-                wordslist = line.split()
-                words += len(wordslist)
-                characters += sum(len(word) for word in wordslist)
-
-        if (characters/2).is_integer():
-            lines = open(filepath + extension, "r", encoding='%s' % encoding).readlines()
-            if version >= 16394:
-                lines[5] = 'unnamedActors\n'
-
-            else:
-                lines[4] = 'unnamedActors\n'
-
-            open(filepath + extension, "w", encoding='%s' % encoding).write(''.join(lines))
-
     return {'FINISHED'}
 
 class ExportJMA(Operator, ExportHelper):
@@ -296,8 +275,9 @@ class ExportJMA(Operator, ExportHelper):
     encoding: EnumProperty(
         name="Encoding:",
         description="What encoding to use for the animation file",
-        items=[ ('utf_8', "UTF-8", "For CE/H2"),
-                ('utf_16', "UTF-16", "For H2"),
+        default="UTF-16LE",        
+        items=[ ('utf_8', "UTF-8", "For CE"),
+                ('UTF-16LE', "UTF-16", "For H2"),
                ]
         )
 
@@ -334,19 +314,13 @@ class ExportJMA(Operator, ExportHelper):
         default = False,
         )
 
-    h2_workaround: BoolProperty(
-        name ="Halo 2 Workaround",
-        description = "Add a character somewhere in the file to keep the character count even. H2Tool doesn't like files with uneven character counts",
-        default = True,
-        )
-
     filter_glob: StringProperty(
             default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmz;*.jmw",
             options={'HIDDEN'},
             )
 
     def execute(self, context):
-        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate, self.h2_workaround)
+        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
