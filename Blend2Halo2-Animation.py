@@ -42,7 +42,7 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate):
+def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate, unknown_transform):
 
     file = open(filepath + extension, 'w', encoding='%s' % encoding)
 
@@ -254,14 +254,14 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     #Unknown H2 specific bool value.
     if version > 16394:
         unknown = 0
-        if extension == ".JMH":
+        if unknown_transform:
             unknown = 1
 
         file.write(
             '\n%s' % (unknown)
             )
 
-        if extension == ".JMH":
+        if unknown_transform:
             for i in range(transform_count):
                 file.write(
                     '\n%0.6f\t%0.6f\t%0.6f' % (0, 0, 0) +
@@ -325,14 +325,20 @@ class ExportJMA(Operator, ExportHelper):
         description = "Set the framerate this animation will run at. Having this box unchecked will write 30 by default.",
         default = False,
         )
+        
+    unknown_transform: BoolProperty(
+        name ="Unknown transform",
+        description = "For Testing",
+        default = False,
+        )        
 
     filter_glob: StringProperty(
-            default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmz;*.jmw",
+            default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmh;*.jmz;*.jmw",
             options={'HIDDEN'},
             )
 
     def execute(self, context):
-        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate)
+        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate, self.unknown_transform)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
