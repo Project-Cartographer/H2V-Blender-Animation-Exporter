@@ -220,7 +220,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
                 bone_matrix_quat = pose_bone.parent.matrix.inverted() @ pose_bone.matrix                
 
             pos  = bone_matrix.translation
-            quat = bone_matrix_quat.to_quaternion()
+            quat = bone_matrix_quat.to_quaternion().inverted()
             scale = pose_bone.scale
 
             #Is this actually necessary? I need to check this again. Make the invert_w in the version check "-1" to see the intended result.
@@ -254,9 +254,20 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     #Unknown H2 specific bool value.
     if version > 16394:
         unknown = 0
+        if extension == ".JMH":
+            unknown = 1
+
         file.write(
             '\n%s' % (unknown)
             )
+
+        if extension == ".JMH":
+            for i in range(transform_count):
+                file.write(
+                    '\n%0.6f\t%0.6f\t%0.6f' % (0, 0, 0) +
+                    '\n%0.6f\t%0.6f\t%0.6f\t%0.6f' % (0, 0, 0, 1) +
+                    '\n%0.6f' % (1)
+                    )
 
     file.write(
         '\n'
@@ -290,6 +301,7 @@ class ExportJMA(Operator, ExportHelper):
                 ('.JMO', "JMO", "Jointed Model Overlay CE/H2"),
                 ('.JMR', "JMR", "Jointed Model Replacement CE/H2"),
                 ('.JRMX', "JRMX", "Jointed Model Replacement Extended H2"),
+                ('.JMH', "JMH", "Jointed Model Havok H2"),
                 ('.JMZ', "JMZ", "Jointed Model Height CE/H2"),
                 ('.JMW', "JMW", "Jointed Model World CE/H2"),
                ]
