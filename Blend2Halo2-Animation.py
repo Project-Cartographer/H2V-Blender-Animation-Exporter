@@ -227,6 +227,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
                 invert_w = 0
             else:
                 invert_w = 0
+
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
             quat_k = Decimal(quat[3]).quantize(Decimal('1.000000'))
@@ -249,6 +250,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
                 '\n%0.6f' % (transform_scale)
                 )
 
+    #Unknown H2 specific bool value.
     if version >= 16394:
         unknown = 0
         file.write(
@@ -256,29 +258,31 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             )
 
     file.write(
-        '\r\n'
+        '\n'
         )
 
     bpy.context.scene.frame_set(1)
     file.close()
-    with open(filepath + extension, encoding='%s' % encoding) as infile:
-        words = 0
-        characters = 0
-        for lineno, line in enumerate(infile, 1):
-            wordslist = line.split()
-            words += len(wordslist)
-            characters += sum(len(word) for word in wordslist)
 
+    #H2Tool has a problem with importing files with an uneven character count for animations. The code below is meant to workaround this by adding an extra character to the actor name if the number of characters isn't divisible by two.
     if h2_workaround:
+        with open(filepath + extension, encoding='%s' % encoding) as infile:
+            words = 0
+            characters = 0
+            for lineno, line in enumerate(infile, 1):
+                wordslist = line.split()
+                words += len(wordslist)
+                characters += sum(len(word) for word in wordslist)
+
         if (characters/2).is_integer():
-            lines = open(filepath + extension, encoding='%s' % encoding).read().splitlines()
+            lines = open(filepath + extension, "r", encoding='%s' % encoding).readlines()
             if version >= 16394:
-                lines[1] = '00'
+                lines[5] = 'unnamedActors\n'
 
             else:
-                lines[6] = '00'
+                lines[4] = 'unnamedActors\n'
 
-            open(filepath + extension,'w', encoding='%s' % encoding).write('\n'.join(lines))
+            open(filepath + extension, "w", encoding='%s' % encoding).write(''.join(lines))
 
     return {'FINISHED'}
 
