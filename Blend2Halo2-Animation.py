@@ -223,10 +223,11 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             quat = bone_matrix_quat.to_quaternion()
             scale = pose_bone.scale
 
+            #Is this actually necessary? I need to check this again. Make the invert_w in the version check "-1" to see the intended result.
             if version >= 16394:
-                invert_w = 0
+                invert_w = 1
             else:
-                invert_w = 0
+                invert_w = 1
 
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
@@ -251,7 +252,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
                 )
 
     #Unknown H2 specific bool value.
-    if version >= 16394:
+    if version > 16394:
         unknown = 0
         file.write(
             '\n%s' % (unknown)
@@ -274,9 +275,8 @@ class ExportJMA(Operator, ExportHelper):
 
     encoding: EnumProperty(
         name="Encoding:",
-        description="What encoding to use for the animation file",
-        default="UTF-16LE",        
-        items=[ ('utf_8', "UTF-8", "For CE"),
+        description="What encoding to use for the animation file",       
+        items=[ ('utf_8', "UTF-8", "For CE/H2"),
                 ('UTF-16LE', "UTF-16", "For H2"),
                ]
         )
@@ -299,8 +299,8 @@ class ExportJMA(Operator, ExportHelper):
         name="Version:",
         description="What version to use for the animation file",
         default="2",
-        items=[ ('0', "16390", "CE/H2"),
-                ('1', "16391", "CE/H2"),
+        items=[ ('0', "16390", "CE/H2 Non-functional"),
+                ('1', "16391", "CE/H2 Non-functional"),
                 ('2', "16392", "CE/H2"),
                 ('3', "16393", "H2"),
                 ('4', "16394", "H2"),
