@@ -295,7 +295,7 @@ class ExportJMA(Operator, ExportHelper):
                 ('.JMT', "JMT", "Jointed Model Turning CE/H2"),
                 ('.JMO', "JMO", "Jointed Model Overlay CE/H2"),
                 ('.JMR', "JMR", "Jointed Model Replacement CE/H2"),
-                ('.JRMX', "JRMX", "Jointed Model Replacement Extended H2"),
+                ('.JMRX', "JMRX", "Jointed Model Replacement Extended H2"),
                 ('.JMH', "JMH", "Jointed Model Havok H2"),
                 ('.JMZ', "JMZ", "Jointed Model Height CE/H2"),
                 ('.JMW', "JMW", "Jointed Model World CE/H2"),
