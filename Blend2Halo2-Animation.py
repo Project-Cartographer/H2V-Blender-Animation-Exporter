@@ -169,12 +169,12 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     #write nodes
     if version >= 16394:
-        for node in node_list:
+        for node in joined_list:
             if node.parent == None:
                 parent_node = -1
 
             else:
-                parent_node = node_list.index(node.parent)
+                parent_node = joined_list.index(node.parent)
 
             file.write(
                 '\n%s' % (node.name) +
@@ -214,25 +214,20 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             bone_matrix = pose_bone.matrix
             if pose_bone.parent and not version >= 16394:
                 bone_matrix = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
-                
-            bone_matrix_quat = pose_bone.matrix               
-            if pose_bone.parent:
-                bone_matrix_quat = pose_bone.parent.matrix.inverted() @ pose_bone.matrix                
 
             pos  = bone_matrix.translation
-            quat = bone_matrix_quat.to_quaternion().inverted()
-            scale = pose_bone.scale
-
-            #Is this actually necessary? I need to check this again. Make the invert_w in the version check "-1" to see the intended result.
             if version >= 16394:
-                invert_w = 1
+                quat = bone_matrix.to_quaternion()
+
             else:
-                invert_w = 1
+                quat = bone_matrix.to_quaternion().inverted()
+
+            scale = pose_bone.scale
 
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
             quat_k = Decimal(quat[3]).quantize(Decimal('1.000000'))
-            quat_w = Decimal(quat[0] * invert_w).quantize(Decimal('1.000000'))
+            quat_w = Decimal(quat[0]).quantize(Decimal('1.000000'))
             pos_x = Decimal(pos[0]).quantize(Decimal('1.000000'))
             pos_y = Decimal(pos[1]).quantize(Decimal('1.000000'))
             pos_z = Decimal(pos[2]).quantize(Decimal('1.000000'))
