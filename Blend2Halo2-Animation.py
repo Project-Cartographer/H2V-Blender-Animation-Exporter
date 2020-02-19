@@ -42,7 +42,7 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate, unknown_transform):
+def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate, biped_controller):
 
     file = open(filepath + extension, 'w', encoding='%s' % encoding)
 
@@ -59,6 +59,10 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     keyframes = []
     armature = []
     armature_count = 0
+    
+    first_frame = bpy.context.scene.frame_start   
+    last_frame = bpy.context.scene.frame_end + 1
+    total_frame_count = bpy.context.scene.frame_end - first_frame + 1
 
     bpy.context.view_layer.objects.active = object_list[0]
     bpy.ops.object.mode_set(mode = 'OBJECT')
@@ -112,26 +116,10 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
         joined_list = root_list + children_list
         reversed_joined_list = root_list + reversed_children_list
 
-    keyframe_points_array = []
-    if not bpy.context.active_object.animation_data or not bpy.context.active_object.animation_data.action:
-        report({'ERROR'}, "No animation data to export.")
-        file.close()
-        return {'CANCELLED'}
-
-    else:
-        fcurves = bpy.context.active_object.animation_data.action.fcurves
-
-    for curve in fcurves:
-        keyframe_points = curve.keyframe_points
-        for keyframe in keyframe_points:
-            keyframe_points_array.append(keyframe.co[0])
-
-    keyframe_list = list(dict.fromkeys(keyframe_points_array))
-    keyframe_list.sort()
 
     version = 16390 + int(jma_version)
     node_checksum = 0
-    transform_count = len(keyframe_list)
+    transform_count = total_frame_count
 
     if custom_framerate:
         frame_rate = bpy.context.scene.render.fps
@@ -204,12 +192,11 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
                 )
 
     #write transforms
-    for keys in keyframe_list:
+    for frame in range(first_frame, last_frame):
         for node in joined_list:
             pose_bone = armature.pose.bones['%s' % (node.name)]
 
-            key_index = keyframe_list.index(keys)
-            bpy.context.scene.frame_set(keyframe_list[key_index])
+            bpy.context.scene.frame_set(frame)
 
             bone_matrix = pose_bone.matrix
             if pose_bone.parent and not version >= 16394:
@@ -246,17 +233,18 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
                 '\n%0.6f' % (transform_scale)
                 )
 
-    #Unknown H2 specific bool value.
+    #H2 specific biped controller data bool value.
     if version > 16394:
-        unknown = 0
-        if unknown_transform:
-            unknown = 1
+        biped_controller_attached = 0
+        if biped_controller:
+            biped_controller_attached = 1
 
         file.write(
-            '\n%s' % (unknown)
+            '\n%s' % (biped_controller_attached)
             )
-
-        if unknown_transform:
+        
+        #find out  what this does and how to bring this from 3DS Max to Blender.
+        if biped_controller:
             for i in range(transform_count):
                 file.write(
                     '\n%0.6f\t%0.6f\t%0.6f' % (0, 0, 0) +
@@ -321,8 +309,8 @@ class ExportJMA(Operator, ExportHelper):
         default = False,
         )
         
-    unknown_transform: BoolProperty(
-        name ="Unknown transform",
+    biped_controller: BoolProperty(
+        name ="Biped Controller",
         description = "For Testing",
         default = False,
         )        
@@ -333,7 +321,7 @@ class ExportJMA(Operator, ExportHelper):
             )
 
     def execute(self, context):
-        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate, self.unknown_transform)
+        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate, self.biped_controller)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
