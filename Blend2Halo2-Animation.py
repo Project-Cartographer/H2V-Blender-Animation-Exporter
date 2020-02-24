@@ -1,10 +1,10 @@
 bl_info = {
-    "name": "Blend2Halo2 Animation",
+    "name": "Blend2Halo2 JMA",
     "author": "General_101",
     "version": (1, 0, 0),
     "blender": (2, 80, 0),
     "location": "File > Export",
-    "description": "Export animation files for Halo 2/CE",
+    "description": "Import-Export Halo 2/CE Jointed Model Animation File (.jma)",
     "wiki_url": "https://num0005.github.io/h2codez_docs/w/H2Tool/Animations.html",
     "category": "Import-Export"}
 
@@ -59,8 +59,8 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     keyframes = []
     armature = []
     armature_count = 0
-    
-    first_frame = bpy.context.scene.frame_start   
+
+    first_frame = bpy.context.scene.frame_start
     last_frame = bpy.context.scene.frame_end + 1
     total_frame_count = bpy.context.scene.frame_end - first_frame + 1
 
@@ -84,6 +84,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     for node in node_list:
         if node.parent == None:
             layer_count.append(None)
+
         else:
             if not node.parent.name in layer_count:
                 layer_count.append(node.parent.name)
@@ -242,8 +243,8 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
         file.write(
             '\n%s' % (biped_controller_attached)
             )
-        
-        #find out  what this does and how to bring this from 3DS Max to Blender.
+
+        #find out what this does and how to bring this from 3DS Max to Blender.
         if biped_controller:
             for i in range(transform_count):
                 file.write(
@@ -269,7 +270,7 @@ class ExportJMA(Operator, ExportHelper):
 
     encoding: EnumProperty(
         name="Encoding:",
-        description="What encoding to use for the animation file",       
+        description="What encoding to use for the animation file",
         items=[ ('utf_8', "UTF-8", "For CE/H2"),
                 ('UTF-16LE', "UTF-16", "For H2"),
                ]
@@ -308,23 +309,23 @@ class ExportJMA(Operator, ExportHelper):
         description = "Set the framerate this animation will run at. Having this box unchecked will write 30 by default.",
         default = False,
         )
-        
+
     biped_controller: BoolProperty(
         name ="Biped Controller",
         description = "For Testing",
         default = False,
-        )        
+        )
 
     filter_glob: StringProperty(
-            default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmh;*.jmz;*.jmw",
-            options={'HIDDEN'},
-            )
+        default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmh;*.jmz;*.jmw",
+        options={'HIDDEN'},
+        )
 
     def execute(self, context):
         return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate, self.biped_controller)
 
 def menu_func_export(self, context):
-    self.layout.operator(ExportJMA.bl_idname, text="Halo Animation file (.jma)")
+    self.layout.operator(ExportJMA.bl_idname, text="Halo Jointed Model Animation (.jma)")
 
 def register():
     bpy.utils.register_class(ExportJMA)
