@@ -66,7 +66,7 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate, biped_controller):
+def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate):
 
     unhide_all_collections()
     unhide_all_objects()
@@ -90,6 +90,11 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     last_frame = bpy.context.scene.frame_end + 1
     total_frame_count = bpy.context.scene.frame_end - first_frame + 1
 
+    if len(object_list) == 0:
+        report({'ERROR'}, "No objects in scene.")
+        file.close()
+        return {'CANCELLED'}
+
     bpy.context.view_layer.objects.active = object_list[0]
     bpy.ops.object.mode_set(mode = 'OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
@@ -106,6 +111,11 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             report({'ERROR'}, "More than one armature object. Please delete all but one.")
             file.close()
             return {'CANCELLED'}
+
+    if armature_count == 0:
+        report({'ERROR'}, "No armature object.")
+        file.close()
+        return {'CANCELLED'}
 
     for node in node_list:
         if node.parent == None:
@@ -250,7 +260,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             scale_z = Decimal(scale[2]).quantize(Decimal('1.000000'))
 
             if not scale_x == scale_y == scale_z:
-                report({'WARNING'}, "Scale for bone %s is not uniform. Resolve this or understand that what shows up ingame may be different from your scene." % node.name)
+                report({'WARNING'}, "Scale for bone %s is not uniform at frame %s. Resolve this or understand that what shows up ingame may be different from your scene." % (node.name, frame))
 
             transform_scale = scale_x
 
@@ -262,6 +272,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     #H2 specific biped controller data bool value.
     if version > 16394:
+        biped_controller = false
         biped_controller_attached = 0
         if biped_controller:
             biped_controller_attached = 1
@@ -270,7 +281,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
             '\n%s' % (biped_controller_attached)
             )
 
-        #find out what this does and how to bring this from 3DS Max to Blender.
+        #Explanation for this found in closed issue #15 on the Git. Seems to do nothing in our toolset so no way to test this to properly port.
         if biped_controller:
             for i in range(transform_count):
                 file.write(
@@ -336,11 +347,11 @@ class ExportJMA(Operator, ExportHelper):
         default = False,
         )
 
-    biped_controller: BoolProperty(
-        name ="Biped Controller",
-        description = "For Testing",
-        default = False,
-        )
+#    biped_controller: BoolProperty(
+#        name ="Biped Controller",
+#        description = "For Testing",
+#        default = False,
+#        )
 
     filter_glob: StringProperty(
         default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmh;*.jmz;*.jmw",
@@ -348,7 +359,7 @@ class ExportJMA(Operator, ExportHelper):
         )
 
     def execute(self, context):
-        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate, self.biped_controller)
+        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Jointed Model Animation (.jma)")
