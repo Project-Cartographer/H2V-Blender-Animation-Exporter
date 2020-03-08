@@ -1,21 +1,33 @@
-bl_info = {
-    "name": "Blend2Halo2 JMA",
-    "author": "General_101",
-    "version": (1, 0, 0),
-    "blender": (2, 80, 0),
-    "location": "File > Export",
-    "description": "Import-Export Halo 2/CE Jointed Model Animation File (.jma)",
-    "wiki_url": "https://num0005.github.io/h2codez_docs/w/H2Tool/Animations.html",
-    "category": "Import-Export"}
+# ##### BEGIN MIT LICENSE BLOCK #####
+#
+# MIT License
+#
+# Copyright (c) 2020 Steven Garcia
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# ##### END MIT LICENSE BLOCK #####
 
 import bpy
-import math
 
 from math import ceil
 from decimal import *
-from bpy_extras.io_utils import ExportHelper
-from bpy.types import Operator, Panel, PropertyGroup
-from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty
 
 def unhide_all_collections():
     for collection_viewport in bpy.context.view_layer.layer_collection.children:
@@ -27,19 +39,11 @@ def unhide_all_collections():
         collection_hide.hide_render = False
 
 def unhide_all_objects():
-    context = bpy.context
-    for obj in context.view_layer.objects:
-        if obj.hide_set:
-            obj.hide_set(False)
-
-        if obj.hide_select:
-            obj.hide_select = False
-
-        if obj.hide_viewport:
-            obj.hide_viewport = False
-
-        if obj.hide_render:
-            obj.hide_render = False
+    for obj in bpy.context.view_layer.objects:
+        obj.hide_set(False)
+        obj.hide_select = False
+        obj.hide_viewport = False
+        obj.hide_render = False
 
 def get_child(bone, bone_list = [], *args):
     for node in bone_list:
@@ -66,7 +70,7 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, encoding, extension, jma_version, custom_framerate):
+def export_jma(context, filepath, report, encoding, extension, jma_version, game_version, custom_frame_rate, frame_rate_float, biped_controller):
 
     unhide_all_collections()
     unhide_all_objects()
@@ -82,7 +86,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     reversed_joined_list = []
     sort_list = []
     reversed_sort_list = []
-    keyframes = []
     armature = []
     armature_count = 0
 
@@ -154,20 +157,46 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
         reversed_joined_list = root_list + reversed_children_list
 
 
-    version = 16390 + int(jma_version)
+    version = int(jma_version)
     node_checksum = 0
     transform_count = total_frame_count
+    
 
-    if custom_framerate:
-        frame_rate = bpy.context.scene.render.fps
-
+    if custom_frame_rate == 'CUSTOM':
+        frame_rate_value = frame_rate_float
     else:
-        frame_rate = 30
+        frame_rate_value = int(custom_frame_rate)
+    frame_rate = frame_rate_value
 
     #actor related items are hardcoded due to them being an unused feature in tool. Do not attempt to do anything to write this out as it is a waste of time and will get you nothing.
     actor_count = 1
     actor_name = 'unnamedActor'
     node_count = len(node_list)
+
+    if len(node_list) == 0:
+        report({'ERROR'}, 'No nodes in scene. Add an armature')
+        file.close()
+        return {'CANCELLED'}
+
+    if version >= 16393 and game_version == 'haloce':
+        report({'ERROR'}, 'This version is not supported for CE. Choose from 16390-16392 if you wish to export for CE.')
+        file.close()
+        return {'CANCELLED'}
+
+    if encoding == 'UTF-16LE' and game_version == 'haloce':
+        report({'ERROR'}, 'This encoding is not supported for CE. Choose UTF-8 if you wish to export for CE.')
+        file.close()
+        return {'CANCELLED'}
+
+    if encoding == 'utf_8' and game_version == 'halo2':
+        report({'ERROR'}, 'This encoding is not supported for Halo 2. Choose UTF-16 if you wish to export for Halo 2.')
+        file.close()
+        return {'CANCELLED'}
+
+    if extension == '.JMRX' and game_version == 'haloce':
+        report({'ERROR'}, 'This extension is not used in Halo CE')
+        file.close()
+        return {'CANCELLED'}
 
     #write header
     if version >= 16394:
@@ -272,7 +301,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
 
     #H2 specific biped controller data bool value.
     if version > 16394:
-        biped_controller = false
         biped_controller_attached = 0
         if biped_controller:
             biped_controller_attached = 1
@@ -298,79 +326,5 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, cust
     file.close()
     return {'FINISHED'}
 
-class ExportJMA(Operator, ExportHelper):
-    """Write a JMA file"""
-    bl_idname = "export_jma.export"
-    bl_label = "Export Animation"
-
-    filename_ext = ''
-
-    encoding: EnumProperty(
-        name="Encoding:",
-        description="What encoding to use for the animation file",
-        items=[ ('utf_8', "UTF-8", "For CE/H2"),
-                ('UTF-16LE', "UTF-16", "For H2"),
-               ]
-        )
-
-    extension: EnumProperty(
-        name="Extension:",
-        description="What extension to use for the animation file",
-        items=[ ('.JMA', "JMA", "Jointed Model Animation CE/H2"),
-                ('.JMM', "JMM", "Jointed Model Moving CE/H2"),
-                ('.JMT', "JMT", "Jointed Model Turning CE/H2"),
-                ('.JMO', "JMO", "Jointed Model Overlay CE/H2"),
-                ('.JMR', "JMR", "Jointed Model Replacement CE/H2"),
-                ('.JMRX', "JMRX", "Jointed Model Replacement Extended H2"),
-                ('.JMH', "JMH", "Jointed Model Havok H2"),
-                ('.JMZ', "JMZ", "Jointed Model Height CE/H2"),
-                ('.JMW', "JMW", "Jointed Model World CE/H2"),
-               ]
-        )
-
-    jma_version: EnumProperty(
-        name="Version:",
-        description="What version to use for the animation file",
-        default="2",
-        items=[ ('0', "16390", "CE/H2 Non-functional"),
-                ('1', "16391", "CE/H2 Non-functional"),
-                ('2', "16392", "CE/H2"),
-                ('3', "16393", "H2"),
-                ('4', "16394", "H2"),
-                ('5', "16395", "H2"),
-               ]
-        )
-
-    custom_framerate: BoolProperty(
-        name ="Custom Framerate",
-        description = "Set the framerate this animation will run at. Having this box unchecked will write 30 by default.",
-        default = False,
-        )
-
-#    biped_controller: BoolProperty(
-#        name ="Biped Controller",
-#        description = "For Testing",
-#        default = False,
-#        )
-
-    filter_glob: StringProperty(
-        default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmh;*.jmz;*.jmw",
-        options={'HIDDEN'},
-        )
-
-    def execute(self, context):
-        return export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.custom_framerate)
-
-def menu_func_export(self, context):
-    self.layout.operator(ExportJMA.bl_idname, text="Halo Jointed Model Animation (.jma)")
-
-def register():
-    bpy.utils.register_class(ExportJMA)
-    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
-
-def unregister():
-    bpy.utils.unregister_class(ExportJMA)
-    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
-
 if __name__ == '__main__':
-    register()
+    bpy.ops.export_jma.export()
