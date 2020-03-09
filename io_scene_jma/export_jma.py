@@ -212,28 +212,28 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
 
     #write nodes
     if version >= 16394:
-        for node in joined_list:
-            parent_node = -1
-            if not node.parent == None:
-                parent_node = joined_list.index(node.parent)
+    for node in joined_list:
+        find_child_node = get_child(node, reversed_joined_list)
+        find_sibling_node = get_sibling(armature, node, reversed_joined_list)
+        first_child_node = -1
+        first_sibling_node = -1
+        parent_node = -1
+        if not find_child_node == None:
+            first_child_node = joined_list.index(find_child_node)
 
+        if not find_sibling_node == None:
+            first_sibling_node = joined_list.index(find_sibling_node)
+
+        if not node.parent == None:
+            parent_node = joined_list.index(node.parent)
+
+        if version >= 16394:
             file.write(
                 '\n%s' % (node.name) +
                 '\n%s' % (parent_node)
                 )
 
-    else:
-        for node in joined_list:
-            find_child_node = get_child(node, reversed_joined_list)
-            find_sibling_node = get_sibling(armature, node, reversed_joined_list)
-            first_child_node = -1
-            first_sibling_node = -1
-            if not find_child_node == None:
-                first_child_node = joined_list.index(find_child_node)
-
-            if not find_sibling_node == None:
-                first_sibling_node = joined_list.index(find_sibling_node)
-
+        else:
             file.write(
                 '\n%s' % (node.name) +
                 '\n%s' % (first_child_node) +
