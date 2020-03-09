@@ -71,10 +71,8 @@ def get_sibling(armature, bone, bone_list = [], *args):
         return sibling
 
 def export_jma(context, filepath, report, encoding, extension, jma_version, game_version, custom_frame_rate, frame_rate_float, biped_controller):
-
     unhide_all_collections()
     unhide_all_objects()
-    file = open(filepath + extension, 'w', encoding='%s' % encoding)
 
     object_list = list(bpy.context.scene.objects)
     node_list = []
@@ -95,7 +93,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
 
     if len(object_list) == 0:
         report({'ERROR'}, "No objects in scene.")
-        file.close()
         return {'CANCELLED'}
 
     bpy.context.view_layer.objects.active = object_list[0]
@@ -109,16 +106,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
             bpy.context.view_layer.objects.active = obj
             obj.select_set(True)
             node_list = list(obj.data.bones)
-
-        if armature_count >= 2:
-            report({'ERROR'}, "More than one armature object. Please delete all but one.")
-            file.close()
-            return {'CANCELLED'}
-
-    if armature_count == 0:
-        report({'ERROR'}, "No armature object.")
-        file.close()
-        return {'CANCELLED'}
 
     for node in node_list:
         if node.parent == None:
@@ -160,12 +147,13 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
     version = int(jma_version)
     node_checksum = 0
     transform_count = total_frame_count
-    
 
     if custom_frame_rate == 'CUSTOM':
         frame_rate_value = frame_rate_float
+
     else:
         frame_rate_value = int(custom_frame_rate)
+
     frame_rate = frame_rate_value
 
     #actor related items are hardcoded due to them being an unused feature in tool. Do not attempt to do anything to write this out as it is a waste of time and will get you nothing.
@@ -173,30 +161,31 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
     actor_name = 'unnamedActor'
     node_count = len(node_list)
 
+    if armature_count >= 2:
+        report({'ERROR'}, "More than one armature object. Please delete all but one.")
+        return {'CANCELLED'}
+
     if len(node_list) == 0:
-        report({'ERROR'}, 'No nodes in scene. Add an armature')
-        file.close()
+        report({'ERROR'}, 'No bones in the current scene. Add an armature.')
         return {'CANCELLED'}
 
     if version >= 16393 and game_version == 'haloce':
-        report({'ERROR'}, 'This version is not supported for CE. Choose from 16390-16392 if you wish to export for CE.')
-        file.close()
+        report({'ERROR'}, 'This version is not supported for Halo CE. Choose from 16390-16392 if you wish to export for Halo CE.')
         return {'CANCELLED'}
 
     if encoding == 'UTF-16LE' and game_version == 'haloce':
-        report({'ERROR'}, 'This encoding is not supported for CE. Choose UTF-8 if you wish to export for CE.')
-        file.close()
+        report({'ERROR'}, 'This encoding is not supported for Halo CE. Choose UTF-8 if you wish to export for Halo CE.')
         return {'CANCELLED'}
 
     if encoding == 'utf_8' and game_version == 'halo2':
         report({'ERROR'}, 'This encoding is not supported for Halo 2. Choose UTF-16 if you wish to export for Halo 2.')
-        file.close()
         return {'CANCELLED'}
 
     if extension == '.JMRX' and game_version == 'haloce':
         report({'ERROR'}, 'This extension is not used in Halo CE')
-        file.close()
         return {'CANCELLED'}
+
+    file = open(filepath + extension, 'w', encoding='%s' % encoding)
 
     #write header
     if version >= 16394:
@@ -224,10 +213,8 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
     #write nodes
     if version >= 16394:
         for node in joined_list:
-            if node.parent == None:
-                parent_node = -1
-
-            else:
+            parent_node = -1
+            if not node.parent == None:
                 parent_node = joined_list.index(node.parent)
 
             file.write(
@@ -239,16 +226,12 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
         for node in joined_list:
             find_child_node = get_child(node, reversed_joined_list)
             find_sibling_node = get_sibling(armature, node, reversed_joined_list)
-            if find_child_node == None:
-                first_child_node = -1
-
-            else:
+            first_child_node = -1
+            first_sibling_node = -1
+            if not find_child_node == None:
                 first_child_node = joined_list.index(find_child_node)
 
-            if find_sibling_node == None:
-                first_sibling_node = -1
-
-            else:
+            if not find_sibling_node == None:
                 first_sibling_node = joined_list.index(find_sibling_node)
 
             file.write(
@@ -269,13 +252,10 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
                 bone_matrix = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
 
             pos  = bone_matrix.translation
-            if version >= 16394:
-                quat = bone_matrix.to_quaternion()
-
-            else:
-                quat = bone_matrix.to_quaternion().inverted()
-
+            quat = bone_matrix.to_quaternion()
             scale = pose_bone.scale
+            if version >= 16394:
+                quat = bone_matrix.to_quaternion().inverted()
 
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
