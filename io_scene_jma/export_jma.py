@@ -211,7 +211,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
             )
 
     #write nodes
-    if version >= 16394:
     for node in joined_list:
         find_child_node = get_child(node, reversed_joined_list)
         find_sibling_node = get_sibling(armature, node, reversed_joined_list)
