@@ -32,7 +32,7 @@ bl_info = {
     "location": "File > Export",
     "description": "Export Halo 2/CE Jointed Model Animation File (.jma)",
     "warning": "",
-    "wiki_url": "https://num0005.github.io/h2codez_docs/w/H2Tool/Animations.html",
+    "wiki_url": "https://num0005.github.io/h2codez_docs/w/H2Tool/Animations/Animations.html",
     "support": 'COMMUNITY',
     "category": "Import-Export"}
 
