@@ -28,7 +28,7 @@ bl_info = {
     "name": "Blend2Halo2 JMA",
     "author": "General_101",
     "version": (1, 0, 0),
-    "blender": (2, 80, 0),
+    "blender": (2, 79, 0),
     "location": "File > Export",
     "description": "Export Halo 2/CE Jointed Model Animation File (.jma)",
     "warning": "",
@@ -63,16 +63,16 @@ class ExportJMA(Operator, ExportHelper):
 
     filename_ext = ''
 
-    encoding: EnumProperty(
+    encoding= EnumProperty(
         name="Encoding:",
         description="What encoding to use for the animation file",
-        default="UTF-16LE",        
+        default="UTF-16LE",
         items=[ ('utf_8', "UTF-8", "For CE/H2"),
                 ('UTF-16LE', "UTF-16", "For H2"),
                ]
         )
 
-    extension: EnumProperty(
+    extension= EnumProperty(
         name="Extension:",
         description="What extension to use for the animation file",
         items=[ ('.JMA', "JMA", "Jointed Model Animation CE/H2"),
@@ -87,7 +87,7 @@ class ExportJMA(Operator, ExportHelper):
                ]
         )
 
-    jma_version: EnumProperty(
+    jma_version= EnumProperty(
         name="Version:",
         description="What version to use for the animation file",
         default="16395",
@@ -100,7 +100,7 @@ class ExportJMA(Operator, ExportHelper):
                ]
         )
 
-    game_version: EnumProperty(
+    game_version= EnumProperty(
         name="Game:",
         description="What game will the model file be used for",
         default="halo2",
@@ -109,7 +109,7 @@ class ExportJMA(Operator, ExportHelper):
                ]
         )
 
-    custom_frame_rate: EnumProperty(
+    custom_frame_rate= EnumProperty(
         name="Framerate:",
         description="Set the framerate this animation will run at.",
         default="30",
@@ -122,21 +122,21 @@ class ExportJMA(Operator, ExportHelper):
                ]
         )
 
-    frame_rate_float: IntProperty(
+    frame_rate_float= IntProperty(
         name="Custom Framerate",
         description="Set your own framerate.",
         default=30,
         min=0,
     )
 
-    biped_controller: BoolProperty(
+    biped_controller= BoolProperty(
         name ="Biped Controller",
         description = "For Testing",
         default = False,
         options={'HIDDEN'},
         )
 
-    filter_glob: StringProperty(
+    filter_glob= StringProperty(
         default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmh;*.jmz;*.jmw",
         options={'HIDDEN'},
         )
@@ -180,11 +180,11 @@ def menu_func_export(self, context):
 
 def register():
     bpy.utils.register_class(ExportJMA)
-    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+    bpy.types.INFO_MT_file_export.append(menu_func_export)
 
 def unregister():
     bpy.utils.unregister_class(ExportJMA)
-    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+    bpy.types.INFO_MT_file_export.remove(menu_func_export)
 
 if __name__ == '__main__':
     register()

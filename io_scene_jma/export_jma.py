@@ -29,17 +29,17 @@ import bpy
 from math import ceil
 from decimal import *
 
-def unhide_all_collections():
-    for collection_viewport in bpy.context.view_layer.layer_collection.children:
-        collection_viewport.hide_viewport = False
-
-    for collection_hide in bpy.data.collections:
-        collection_hide.hide_select = False
-        collection_hide.hide_viewport = False
-        collection_hide.hide_render = False
+#def unhide_all_collections():
+#    for collection_viewport in bpy.context.view_layer.layer_collection.children:
+#        collection_viewport.hide_viewport = False
+#
+#    for collection_hide in bpy.data.collections:
+#        collection_hide.hide_select = False
+#        collection_hide.hide_viewport = False
+#        collection_hide.hide_render = False
 
 def unhide_all_objects():
-    for obj in bpy.context.view_layer.objects:
+    for obj in bpy.context.scene.objects:
         obj.hide_set(False)
         obj.hide_select = False
         obj.hide_viewport = False
@@ -71,8 +71,8 @@ def get_sibling(armature, bone, bone_list = [], *args):
         return sibling
 
 def export_jma(context, filepath, report, encoding, extension, jma_version, game_version, custom_frame_rate, frame_rate_float, biped_controller):
-    unhide_all_collections()
-    unhide_all_objects()
+    #unhide_all_collections()
+    #unhide_all_objects()
 
     object_list = list(bpy.context.scene.objects)
     node_list = []
@@ -95,7 +95,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
         report({'ERROR'}, "No objects in scene.")
         return {'CANCELLED'}
 
-    bpy.context.view_layer.objects.active = object_list[0]
+    bpy.context.scene.objects.active = object_list[0]
     bpy.ops.object.mode_set(mode = 'OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
 
@@ -103,8 +103,8 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
         if obj.type == 'ARMATURE':
             armature_count += 1
             armature = obj
-            bpy.context.view_layer.objects.active = obj
-            obj.select_set(True)
+            bpy.context.scene.objects.active = obj
+            obj.select  = True
             node_list = list(obj.data.bones)
 
     for node in node_list:
@@ -248,7 +248,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
 
             bone_matrix = pose_bone.matrix
             if pose_bone.parent and not version >= 16394:
-                bone_matrix = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
+                bone_matrix = pose_bone.parent.matrix.inverted() * pose_bone.matrix
 
             pos  = bone_matrix.translation
             quat = bone_matrix.to_quaternion()
