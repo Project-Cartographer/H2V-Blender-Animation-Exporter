@@ -36,6 +36,11 @@ bl_info = {
     "support": 'COMMUNITY',
     "category": "Import-Export"}
 
+if "bpy" in locals():
+    import importlib
+    if "export_jma" in locals():
+        importlib.reload(export_jma)
+
 import bpy
 import sys
 import argparse
@@ -62,15 +67,6 @@ class ExportJMA(Operator, ExportHelper):
     bl_label = "Export Animation"
 
     filename_ext = ''
-
-    encoding: EnumProperty(
-        name="Encoding:",
-        description="What encoding to use for the animation file",
-        default="UTF-16LE",        
-        items=[ ('utf_8', "UTF-8", "For CE/H2"),
-                ('UTF-16LE', "UTF-16", "For H2"),
-               ]
-        )
 
     extension: EnumProperty(
         name="Extension:",
@@ -104,8 +100,8 @@ class ExportJMA(Operator, ExportHelper):
         name="Game:",
         description="What game will the model file be used for",
         default="halo2",
-        items=[ ('haloce', "Halo CE", "Export a JMA intended for Halo CE"),
-                ('halo2', "Halo 2", "Export a JMA intended for Halo 2"),
+        items=[ ('haloce', "Halo CE", "Export an animation intended for Halo CE"),
+                ('halo2', "Halo 2", "Export an animation intended for Halo 2"),
                ]
         )
 
@@ -146,17 +142,15 @@ class ExportJMA(Operator, ExportHelper):
             argv = sys.argv[sys.argv.index('--') + 1:]
             parser = argparse.ArgumentParser()
             parser.add_argument('-arg1', '--filepath', dest='filepath', metavar='FILE', required = True)
-            parser.add_argument('-arg2', '--encoding', dest='encoding', type=str, default="UTF-16LE")
-            parser.add_argument('-arg3', '--extension', dest='extension', type=str, default=".JMA")
-            parser.add_argument('-arg4', '--jma_version', dest='jma_version', type=str, default="16392")
-            parser.add_argument('-arg5', '--game_version', dest='game_version', type=str, default="halo2")
-            parser.add_argument('-arg6', '--custom_frame_rate', dest='custom_frame_rate', type=str, default="30")
-            parser.add_argument('-arg7', '--frame_rate_float', dest='frame_rate_float', type=str, default=30)
-            parser.add_argument('-arg8', '--biped_controller', dest='biped_controller', action='store_true')
+            parser.add_argument('-arg2', '--extension', dest='extension', type=str, default=".JMA")
+            parser.add_argument('-arg3', '--jma_version', dest='jma_version', type=str, default="16392")
+            parser.add_argument('-arg4', '--game_version', dest='game_version', type=str, default="halo2")
+            parser.add_argument('-arg5', '--custom_frame_rate', dest='custom_frame_rate', type=str, default="30")
+            parser.add_argument('-arg6', '--frame_rate_float', dest='frame_rate_float', type=str, default=30)
+            parser.add_argument('-arg7', '--biped_controller', dest='biped_controller', action='store_true')
             args = parser.parse_known_args(argv)[0]
             # print parameters
             print('filepath: ', args.filepath)
-            print('encoding: ', args.encoding)
             print('extension: ', args.extension)
             print('jma_version: ', args.jma_version)
             print('custom_frame_rate: ', args.custom_frame_rate)
@@ -165,7 +159,6 @@ class ExportJMA(Operator, ExportHelper):
 
         if len(self.filepath) == 0:
             self.filepath = args.filepath
-            self.encoding = args.encoding
             self.extension = args.extension
             self.jma_version = args.jma_version
             self.game_version = args.game_version
@@ -173,7 +166,7 @@ class ExportJMA(Operator, ExportHelper):
             self.frame_rate_float = args.frame_rate_float
             self.biped_controller = args.biped_controller
 
-        return halo.export_jma(context, self.filepath, self.report, self.encoding, self.extension, self.jma_version, self.game_version, self.custom_frame_rate, self.frame_rate_float, self.biped_controller)
+        return halo.export_jma(context, self.filepath, self.report, self.extension, self.jma_version, self.game_version, self.custom_frame_rate, self.frame_rate_float, self.biped_controller)
 
 def menu_func_export(self, context):
     self.layout.operator(ExportJMA.bl_idname, text="Halo Jointed Model Animation (.jma)")

@@ -70,7 +70,40 @@ def get_sibling(armature, bone, bone_list = [], *args):
 
         return sibling
 
-def export_jma(context, filepath, report, encoding, extension, jma_version, game_version, custom_frame_rate, frame_rate_float, biped_controller):
+def get_encoding(game_version):
+    if game_version == 'haloce':
+        encoding = 'utf_8'
+
+    elif game_version == 'halo2':
+        encoding = 'utf-16le'
+
+    else:
+        encoding = 'utf_8'
+
+    return encoding
+
+def error_pass(armature_count, report, game_version, node_list, version, extension):
+    extension_list = ['JRMX', 'JMH']
+    if armature_count >= 2:
+        report({'ERROR'}, "More than one armature object. Please delete all but one.")
+        return True
+
+    if len(node_list) == 0:
+        report({'ERROR'}, 'No bones in the current scene. Add an armature.')
+        return True
+
+    if version >= 16393 and game_version == 'haloce':
+        report({'ERROR'}, 'This version is not supported for Halo CE. Choose from 16390-16392 if you wish to export for Halo CE.')
+        return True
+
+    if extension in extension_list and game_version == 'haloce':
+        report({'ERROR'}, 'This extension is not used in Halo CE')
+        return True
+
+    else:
+        return False
+
+def export_jma(context, filepath, report, extension, jma_version, game_version, custom_frame_rate, frame_rate_float, biped_controller):
     unhide_all_collections()
     unhide_all_objects()
 
@@ -94,10 +127,6 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
     if len(object_list) == 0:
         report({'ERROR'}, "No objects in scene.")
         return {'CANCELLED'}
-
-    bpy.context.view_layer.objects.active = object_list[0]
-    bpy.ops.object.mode_set(mode = 'OBJECT')
-    bpy.ops.object.select_all(action='DESELECT')
 
     for obj in object_list:
         if obj.type == 'ARMATURE':
@@ -161,31 +190,15 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
     actor_name = 'unnamedActor'
     node_count = len(node_list)
 
-    if armature_count >= 2:
-        report({'ERROR'}, "More than one armature object. Please delete all but one.")
+    if error_pass(armature_count, report, game_version, node_list, version, extension):
         return {'CANCELLED'}
 
-    if len(node_list) == 0:
-        report({'ERROR'}, 'No bones in the current scene. Add an armature.')
-        return {'CANCELLED'}
+    extension_list = ['jma', 'jmm', 'jmt', 'jmo', 'jmr', 'jrmx', 'jmh', 'jmz', 'jmw']
+    true_extension = ''
+    if not filepath[-3:].lower() in extension_list:
+        true_extension = extension
 
-    if version >= 16393 and game_version == 'haloce':
-        report({'ERROR'}, 'This version is not supported for Halo CE. Choose from 16390-16392 if you wish to export for Halo CE.')
-        return {'CANCELLED'}
-
-    if encoding == 'UTF-16LE' and game_version == 'haloce':
-        report({'ERROR'}, 'This encoding is not supported for Halo CE. Choose UTF-8 if you wish to export for Halo CE.')
-        return {'CANCELLED'}
-
-    if encoding == 'utf_8' and game_version == 'halo2':
-        report({'ERROR'}, 'This encoding is not supported for Halo 2. Choose UTF-16 if you wish to export for Halo 2.')
-        return {'CANCELLED'}
-
-    if extension == '.JMRX' and game_version == 'haloce':
-        report({'ERROR'}, 'This extension is not used in Halo CE')
-        return {'CANCELLED'}
-
-    file = open(filepath + extension, 'w', encoding='%s' % encoding)
+    file = open(filepath + extension, 'w', encoding='%s' % get_encoding(game_version))
 
     #write header
     if version >= 16394:
@@ -303,6 +316,7 @@ def export_jma(context, filepath, report, encoding, extension, jma_version, game
 
     bpy.context.scene.frame_set(1)
     file.close()
+    report({'INFO'}, "Export completed successfully")
     return {'FINISHED'}
 
 if __name__ == '__main__':
