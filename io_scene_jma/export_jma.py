@@ -264,10 +264,10 @@ def export_jma(context, filepath, report, extension, jma_version, game_version, 
                 bone_matrix = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
 
             pos  = bone_matrix.translation
-            quat = bone_matrix.to_quaternion()
+            quat = bone_matrix.to_quaternion().inverted()
             scale = pose_bone.scale
             if version >= 16394:
-                quat = bone_matrix.to_quaternion().inverted()
+                quat = bone_matrix.to_quaternion()
 
             quat_i = Decimal(quat[1]).quantize(Decimal('1.000000'))
             quat_j = Decimal(quat[2]).quantize(Decimal('1.000000'))
@@ -279,8 +279,8 @@ def export_jma(context, filepath, report, extension, jma_version, game_version, 
             scale_x = Decimal(scale[0]).quantize(Decimal('1.000000'))
             scale_y = Decimal(scale[1]).quantize(Decimal('1.000000'))
             scale_z = Decimal(scale[2]).quantize(Decimal('1.000000'))
-
-            if not scale_x == scale_y == scale_z:
+          
+            if not scale[0] == scale[1] and not scale[0] == scale[2]:
                 report({'WARNING'}, "Scale for bone %s is not uniform at frame %s. Resolve this or understand that what shows up ingame may be different from your scene." % (node.name, frame))
 
             transform_scale = scale_x
