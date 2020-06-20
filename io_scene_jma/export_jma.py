@@ -82,7 +82,7 @@ def get_encoding(game_version):
 
     return encoding
 
-def error_pass(armature_count, report, game_version, node_list, version, extension):
+def error_pass(armature_count, report, game_version, node_list, version, extension, root_node_count):
     extension_list = ['JRMX', 'JMH']
     if armature_count >= 2:
         report({'ERROR'}, "More than one armature object. Please delete all but one.")
@@ -99,6 +99,10 @@ def error_pass(armature_count, report, game_version, node_list, version, extensi
     if extension in extension_list and game_version == 'haloce':
         report({'ERROR'}, 'This extension is not used in Halo CE')
         return True
+        
+    elif root_node_count >= 2:
+        report({'ERROR'}, "More than one root bone. Please remove or rename bones until you only have one root bone in armature.")
+        return True        
 
     else:
         return False
@@ -119,6 +123,7 @@ def export_jma(context, filepath, report, extension, jma_version, game_version, 
     reversed_sort_list = []
     armature = []
     armature_count = 0
+    root_node_count = 0
 
     first_frame = bpy.context.scene.frame_start
     last_frame = bpy.context.scene.frame_end + 1
@@ -138,6 +143,7 @@ def export_jma(context, filepath, report, extension, jma_version, game_version, 
 
     for node in node_list:
         if node.parent == None:
+            root_node_count += 1
             layer_count.append(None)
 
         else:
@@ -190,15 +196,16 @@ def export_jma(context, filepath, report, extension, jma_version, game_version, 
     actor_name = 'unnamedActor'
     node_count = len(node_list)
 
-    if error_pass(armature_count, report, game_version, node_list, version, extension):
+    if error_pass(armature_count, report, game_version, node_list, version, extension, root_node_count):
         return {'CANCELLED'}
 
-    extension_list = ['jma', 'jmm', 'jmt', 'jmo', 'jmr', 'jrmx', 'jmh', 'jmz', 'jmw']
+    extension_list = ['jma', 'jmm', 'jmt', 'jmo', 'jmr', 'jmrx', 'jmh', 'jmz', 'jmw']
     true_extension = ''
-    if not filepath[-3:].lower() in extension_list:
+    extension_char = (len(extension)) - 1
+    if not filepath[-(extension_char):].lower() in extension_list or not filepath[-(extension_char):].lower() in extension.lower():      
         true_extension = extension
-
-    file = open(filepath + extension, 'w', encoding='%s' % get_encoding(game_version))
+        
+    file = open(filepath + true_extension, 'w', encoding='%s' % get_encoding(game_version))
 
     #write header
     if version >= 16394:

@@ -133,7 +133,7 @@ class ExportJMA(Operator, ExportHelper):
         )
 
     filter_glob: StringProperty(
-        default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jrmx;*.jmh;*.jmz;*.jmw",
+        default="*.jma;*.jmm;*.jmt;*.jmo;*.jmr;*.jmrx;*.jmh;*.jmz;*.jmw",
         options={'HIDDEN'},
         )
 
