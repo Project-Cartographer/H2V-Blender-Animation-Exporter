@@ -31,6 +31,7 @@ from decimal import *
 
 def unhide_all_collections():
     for collection_viewport in bpy.context.view_layer.layer_collection.children:
+        collection_viewport.exclude = False
         collection_viewport.hide_viewport = False
 
     for collection_hide in bpy.data.collections:
