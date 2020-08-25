@@ -1,3 +1,5 @@
+# **DEPRECATED Use [Project-Cartographer/Halo-Jointed-Model-Blender-Toolset](https://github.com/Project-Cartographer/Halo-Jointed-Model-Blender-Toolset) instead.**
+
 # H2V-Blender-Animation-Exporter
 An exporter for Blender to create animations for H2V/CE
 
